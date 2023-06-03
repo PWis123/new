@@ -20,7 +20,6 @@ module VGA_typewriter #(
         output [3:0] vga_r,  // 4-bit VGA red
         output [3:0] vga_g,  // 4-bit VGA green
         output [3:0] vga_b,   // 4-bit VGA blue
-        output [11:0] led,
         input [5:0] addrRead,
         output [7:0] asciiRead
     );
@@ -30,9 +29,7 @@ module VGA_typewriter #(
     wire clk_pix_locked;
     wire [ASCII_WIDTH-1:0] asciiWrite;
     wire writeEn;
- 
-    assign led[7:0] = asciiWrite;
-    assign led[11:8] = 0;
+
     
     
     clk_wiz_0 clock_pix_inst (

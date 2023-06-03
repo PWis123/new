@@ -1,8 +1,7 @@
 //计算器顶层模块
 module Calculator_Top( 
-Sysclk,Instr,
-Instr_Addr, Finish, Result,
-En
+Sysclk,Instr,St,En,
+Instr_Addr, Finish, Result
 );
 
 input wire Sysclk;
@@ -12,7 +11,8 @@ output reg Finish = 0;          //完成计算
 output reg [15:0] Result = 0;
 
 //总体控制
-input wire En ;        //使能信号，模块其为0的时候初始化
+input wire En;        //使能信号，模块其为0的时候初始化
+input wire St;        //计算使能
 
 //FSM模块变量
 reg FSM_EN = 0;
@@ -42,7 +42,9 @@ reg [15:0] RAM_B_In = 0;
 wire [15:0] RAM_B_Out;
 
 //本地变量
-reg [1:0] delay = 0;
+reg delay = 0;
+reg Cal_Start = 0;
+reg Finish_Reg = 0;
 
 //-----------------------------------------------------------------------
 //模块调用
@@ -78,10 +80,16 @@ always@( * ) begin
     RAM_B_Wr = 0;
     RAM_B_Addr = 0;
     RAM_B_In = 0;    
-    Finish = 0;
+    Cal_Start = 0;
+    Finish_Reg = 0;
     end 
     else begin
-        if (  Pre_Finish == 0 && FSM_Finish == 0 ) begin
+        if (  Cal_Start == 0 && Pre_Finish == 0 && FSM_Finish == 0 ) begin
+            if ( St ) begin
+                Cal_Start = 1;
+            end
+        end
+        else if (  Cal_Start == 1 && Pre_Finish == 0 && FSM_Finish == 0 ) begin
             Pre_EN = 1;
             Instr_Addr = R_Pointer[5:0];
             Pre_Instr_reg = {8'b0, Instr};
@@ -89,14 +97,14 @@ always@( * ) begin
             RAM_B_Addr = W_Pointer;
             RAM_B_In = Pre_Outstr;
         end
-        else if ( Pre_Finish == 1 && FSM_Finish == 0 ) begin
+        else if ( Cal_Start == 1 && Pre_Finish == 1 && FSM_Finish == 0 ) begin
             FSM_EN = 1;
             RAM_B_Wr = 0;
             RAM_B_Addr = FSM_Pointer;
             FSM_Instr_reg = RAM_B_Out;
-        end
-        else begin
-            Finish = 1;
+        end 
+        else if ( Cal_Start == 1 && Pre_Finish == 1 && FSM_Finish == 1 ) begin      
+            Finish_Reg = 1;
         end
     end
 end
@@ -104,6 +112,20 @@ end
 //结果输出
 always@( * ) begin
     Result = FSM_Result;
+end
+
+always@( posedge Sysclk ) begin
+    if ( Finish_Reg == 1 && delay == 0) begin
+        Finish = 1;
+        delay = delay + 1;    
+    end
+    else if ( Finish_Reg == 1 && delay == 1) begin
+        Finish = 0;        
+    end
+    else begin
+        Finish = 0;
+        delay = 0;   
+    end
 end
 
 endmodule

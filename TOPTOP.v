@@ -20,6 +20,7 @@ module TOPTOP(
     wire [5:0] addrRead;
     wire [7:0] asciiRead; 
     wire [7:0] asciiWrite;  
+    reg Fin = 0;
     VGA_typewriter VGA(
         clk_50m,
         rst,
@@ -32,25 +33,29 @@ module TOPTOP(
         vga_r,
         vga_g,
         vga_b,
-        led,
         addrRead,
         asciiRead
         );   
     
 
-//    wire calcStart = (asciiWrite == 8'b00001101) & dataReady;
+    wire calcStart = (asciiWrite == 8'b00001101) & dataReady;
     wire Finish;          //ÕÍ≥…º∆À„
     wire [15:0] Result;    
     Calculator_Top calculator(
         clk_50m,
-        asciiWrite,
+        asciiRead,
+        calcStart,
+        rst,
         addrRead,
         Finish,
-        Result,
-        rst
+        Result
         ); 
         
-    
+    always@(*) begin
+        if ( Finish == 1 && Fin == 0 )
+            Fin = 1;
+    end    
+    assign led = {3'd0,Fin,Result[7:0]};
     
     
     
